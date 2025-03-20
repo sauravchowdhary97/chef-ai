@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+from langchain.tools import tool
 from PIL import Image
 import pytesseract
 
