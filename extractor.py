@@ -80,3 +80,32 @@ def identify_cooking_actions(recipe_json_str: str) -> str:
         return json.dumps(actions)
     except Exception as e:
         return f"Error identifying cooking actions: {str(e)}"
+
+@tool
+def extract_durations(recipe_json_str: str) -> str:
+    """Extract cooking durations from recipe steps"""
+    try:
+        recipe_json = json.loads(recipe_json_str)
+        time_pattern = r'(\d+)(?:\s*-\s*\d+)?\s*(minute|minutes|mins|min|hour|hours|hr|hrs)'
+        durations = []
+        
+        for i, step in enumerate(recipe_json["steps"]):
+            matches = re.finditer(time_pattern, step, re.IGNORECASE)
+            for match in matches:
+                time_value = int(match.group(1))
+                unit = match.group(2).lower()
+                
+                # Convert to minutes for consistency
+                if unit.startswith("hour") or unit == "hr" or unit == "hrs":
+                    time_value *= 60
+                
+                durations.append({
+                    "step_number": i + 1,
+                    "duration_minutes": time_value,
+                    "original_text": match.group(0),
+                    "full_instruction": step
+                })
+        
+        return json.dumps(durations)
+    except Exception as e:
+        return f"Error extracting durations: {str(e)}"
