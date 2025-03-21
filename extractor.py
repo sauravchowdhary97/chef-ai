@@ -5,6 +5,7 @@ import pytesseract
 import json
 import requests
 import os
+import re
 
 # Load environment variables
 load_dotenv()
@@ -54,3 +55,28 @@ def parse_recipe_text(text: str) -> str:
         return result["choices"][0]["message"]["content"]
     except Exception as e:
         return f"Error parsing recipe: {str(e)}"
+
+@tool
+def identify_cooking_actions(recipe_json_str: str) -> str:
+    """Identify cooking actions from recipe steps"""
+    try:
+        recipe_json = json.loads(recipe_json_str)
+        cooking_verbs = ["chop", "dice", "slice", "mince", "grate", "mix", "stir", "beat", "whisk", 
+                        "fold", "bake", "roast", "grill", "boil", "simmer", "fry", "sauté", "steam",
+                        "poach", "marinate", "season", "sprinkle", "pour", "drizzle", "blend", "puree"]
+        
+        actions = []
+        for i, step in enumerate(recipe_json["steps"]):
+            step_actions = []
+            for verb in cooking_verbs:
+                if re.search(r'\b' + verb + r'\b', step.lower()):
+                    step_actions.append({
+                        "action": verb,
+                        "step_number": i + 1,
+                        "full_instruction": step
+                    })
+            actions.extend(step_actions)
+        
+        return json.dumps(actions)
+    except Exception as e:
+        return f"Error identifying cooking actions: {str(e)}"
