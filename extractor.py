@@ -1,10 +1,11 @@
 from dotenv import load_dotenv
-from crewai import Agent, Task
+from crewai import Agent, Task, Crew, Process
 from langchain.tools import tool
 from PIL import Image
 import pytesseract
 import json
 import requests
+import tempfile
 import os
 import re
 
@@ -165,9 +166,67 @@ ocr_agent = Agent(
     tools=[extract_text_from_image]
 )
 
+
+recipe_parser_agent = Agent(
+    role="Recipe Parser",
+    goal="Transform raw recipe text into structured data",
+    backstory=f"""
+        You are a culinary data specialist who excels at understanding recipe formats and converting them into structured, machine-readable formats. 
+        You understand cooking terminology and recipe organization.
+        """,
+    verbose=True,
+    allow_delegation=True,
+    tools=[parse_recipe_text, identify_cooking_actions, extract_durations]
+)
+
 # Define the tasks
 extract_text_task = Task(
     description="Extract text from the recipe image",
     agent=ocr_agent,
     expected_output="The raw text extracted from the recipe image"
 )
+
+parse_recipe_task = Task(
+    description="Parse the extracted text into structured recipe data",
+    agent=recipe_parser_agent,
+    expected_output="A JSON object containing recipe title, ingredients, steps, and other structured data"
+)
+
+analyze_recipe_task = Task(
+    description="Identify cooking actions and extract cooking durations from the recipe.",
+    agent=recipe_parser_agent,
+    expected_output="A JSON object containing cooking actions and durations for each step"
+)
+
+# Create the crew
+recipe_video_crew = Crew(
+    agents=[ocr_agent, recipe_parser_agent],
+    tasks=[extract_text_task, parse_recipe_task, analyze_recipe_task],
+    verbose=2,
+    process=Process.sequential  # Tasks will be executed in order
+)
+
+# Main application function
+def convert_img_to_text_recipe(image_path, output_dir="./output"):
+    """Convert a recipe image to a cooking video using CrewAI (future iteration)"""
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Set up temp directory for intermediate files
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Set context for the crew
+        context = {
+            "image_path": image_path,
+            "temp_dir": temp_dir,
+            "output_dir": output_dir
+        }
+        
+        # Execute the crew's tasks
+        result = recipe_video_crew.kickoff(inputs=context)
+        
+        return result
+
+if __name__ == "__main__":
+    # Example usage
+    recipe_image = "./sample_recipe.jpg"
+    result = convert_img_to_text_recipe(recipe_image)
+    print(f"Final result: {result}")
