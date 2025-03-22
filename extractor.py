@@ -109,3 +109,43 @@ def extract_durations(recipe_json_str: str) -> str:
         return json.dumps(durations)
     except Exception as e:
         return f"Error extracting durations: {str(e)}"
+
+@tool
+def generate_video_prompt(step: str, step_number: int, ingredients_json: str) -> str:
+    """Generate a detailed prompt for AI video generation"""
+    try:
+        ingredients = json.loads(ingredients_json)
+        
+        # Extract the main cooking action
+        cooking_verbs = ["chop", "dice", "slice", "mince", "grate", "mix", "stir", "beat", "whisk", 
+                        "fold", "bake", "roast", "grill", "boil", "simmer", "fry", "sauté", "steam"]
+        main_action = "cooking"
+        for action in cooking_verbs:
+            if action in step.lower():
+                main_action = action
+                break
+        
+        # Extract relevant ingredients for this step
+        relevant_ingredients = []
+        for ingredient in ingredients:
+            ingredient_name = ingredient.get("name", "").lower()
+            if ingredient_name in step.lower():
+                relevant_ingredients.append(ingredient_name)
+        
+        ingredients_list = ", ".join(relevant_ingredients) if relevant_ingredients else "all necessary ingredients"
+        
+        # Generate the prompt
+        prompt_template = f"""
+        Create a realistic, top-down view of {main_action}. 
+        Kitchen setting with clean countertop, good lighting. 
+        
+        Specifically show: {step}
+        
+        Ingredients visible: {ingredients_list}
+        
+        Style: Professional cooking video, 4K quality, soft natural lighting.
+        """
+        
+        return prompt_template
+    except Exception as e:
+        return f"Error generating video prompt: {str(e)}"
