@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+from crewai import Agent, Task
 from langchain.tools import tool
 from PIL import Image
 import pytesseract
@@ -143,9 +144,30 @@ def generate_video_prompt(step: str, step_number: int, ingredients_json: str) ->
         
         Ingredients visible: {ingredients_list}
         
-        Style: Professional cooking video, 4K quality, soft natural lighting.
+        Style: Professional cooking video with a homely feeling, 4K quality, soft natural lighting.
         """
         
         return prompt_template
     except Exception as e:
         return f"Error generating video prompt: {str(e)}"
+
+
+# Define the agents
+ocr_agent = Agent(
+    role="OCR Specialist",
+    goal="Extract text accurately from recipe images",
+    backstory=f"""
+        You are an expert in optical character recognition with years of experience in extracting text from various types of images. 
+        Your specialty is recipe images, where you can identify ingredients, instructions, and other recipe components.
+        """,
+    verbose=True,
+    allow_delegation=True,
+    tools=[extract_text_from_image]
+)
+
+# Define the tasks
+extract_text_task = Task(
+    description="Extract text from the recipe image",
+    agent=ocr_agent,
+    expected_output="The raw text extracted from the recipe image"
+)
