@@ -203,6 +203,7 @@ recipe_video_crew = Crew(
     agents=[ocr_agent, recipe_parser_agent],
     tasks=[extract_text_task, parse_recipe_task, analyze_recipe_task],
     verbose=2,
+    planning=true,
     process=Process.sequential  # Tasks will be executed in order
 )
 
